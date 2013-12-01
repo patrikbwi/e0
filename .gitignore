@@ -1,0 +1,8 @@
+*.beam
+.eunit
+deps/*
+lib/e0/ebin
+*~
+dev/*
+doc/*
+rel/e0
