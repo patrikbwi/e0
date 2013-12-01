@@ -8,5 +8,6 @@ doc/*
 rel/e0
 *.o
 *.beam
+*.app
 *.plt
 erl_crash.dump

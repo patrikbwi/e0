@@ -7,7 +7,8 @@
   {applications, [
                   kernel,
                   stdlib,
-                  riak_core
+                  riak_core,
+                  eper
                  ]},
   {mod, { e0_app, []}},
   {env, []}
