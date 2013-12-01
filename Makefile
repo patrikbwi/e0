@@ -38,12 +38,12 @@ docs:
 ##
 
 stage : rel
-	$(foreach dep,$(wildcard deps/* wildcard apps/*), rm -rf rel/e0/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/e0/lib;)
+	$(foreach dep,$(wildcard deps/* wildcard lib/*), rm -rf rel/e0/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/e0/lib;)
 
 
 stagedevrel: dev1 dev2 dev3
 	$(foreach dev,$^,\
-	  $(foreach dep,$(wildcard deps/* wildcard apps/*), rm -rf dev/$(dev)/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$(dev)/lib;))
+	  $(foreach dep,$(wildcard deps/* wildcard lib/*), rm -rf dev/$(dev)/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$(dev)/lib;))
 
 devrel: dev1 dev2 dev3
 
@@ -65,11 +65,11 @@ COMBO_PLT = $(HOME)/.e0_combo_dialyzer_plt
 
 check_plt: deps compile
 	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin apps/*/ebin
+		deps/*/ebin lib/*/ebin
 
 build_plt: deps compile
 	dialyzer --build_plt --output_plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin apps/*/ebin
+		deps/*/ebin lib/*/ebin
 
 dialyzer: deps compile
 	@echo
@@ -77,7 +77,7 @@ dialyzer: deps compile
 	@echo Use "'make build_plt'" to build PLT prior to using this target.
 	@echo
 	@sleep 1
-	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin apps/*/ebin
+	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin lib/*/ebin
 
 
 cleanplt:
