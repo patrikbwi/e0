@@ -1,0 +1,9 @@
+{application,e0,
+             [{description,[]},
+              {vsn,"1"},
+              {registered,[]},
+              {applications,[kernel,stdlib,riak_core]},
+              {mod,{e0_app,[]}},
+              {env,[]},
+              {modules,[e0,e0_app,e0_console,e0_node_event_handler,
+                        e0_ring_event_handler,e0_sup,e0_vnode]}]}.
