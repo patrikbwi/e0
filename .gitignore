@@ -6,3 +6,7 @@ lib/e0/ebin
 dev/*
 doc/*
 rel/e0
+*.o
+*.beam
+*.plt
+erl_crash.dump
