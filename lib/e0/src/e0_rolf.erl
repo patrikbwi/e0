@@ -70,7 +70,7 @@ handle_call({try_lock, Keys, Timeout}, {Pid, _Tag}
   case lists:keyfind(Pid, 1, M0) of
     {Pid, {_Ref, _Keys}} ->
       %% A process may only have one monitored lock (for now).
-      {reply, false, M0, TryLock0};
+      {reply, false, S};
     false ->
       case try_lock_and_monitor_timeout(Keys, Pid, M0, TryLock0, Timeout) of
         {true, M, TryLock} ->
@@ -95,20 +95,20 @@ handle_call(_, _, State) ->
 
 handle_cast({release_lock, ReleaseKeys, Pid},  #s{monitors = M0} = S) ->
   M = case lists:keyfind(Pid, 1, M0) of
-        {Pid, {Ref, LockedKeys}} when ReleaseKeys == LockedKeys ->
-          erlang:demonitor(Ref),
-          release_lock_int(ReleaseKeys),
-          lists:keydelete(Pid, 1, M0);
         {Pid, {Ref, LockedKeys0}} ->
-          release_lock_int(ReleaseKeys),
-          LockedKeys = subtract_sorted_keys(ReleaseKeys, LockedKeys0),
-          lists:keyreplace(Pid, 1, M0, {Pid, {Ref, LockedKeys}});
+            case subtract_sorted_keys(ReleaseKeys, LockedKeys0) of
+              [] ->
+                erlang:demonitor(Ref),
+                lists:keydelete(Pid, 1, M0);
+              LockedKeys ->
+                lists:keyreplace(Pid, 1, M0, {Pid, {Ref, LockedKeys}})
+            end;
         false ->
           M0
       end,
-  {no_reply, S#s{monitors = M}};
+  {noreply, S#s{monitors = M}};
 handle_cast(_, S) ->
-  {no_reply, S}.
+  {noreply, S}.
 
 handle_info({'DOWN', _Ref, process, Pid, _Info}, #s{monitors = M0} = S) ->
   M = case lists:keyfind(Pid, 1, M0) of
@@ -168,10 +168,14 @@ subtract_sorted_keys(ReleaseKeys, LockedKeys) ->
 
 subtract_sorted_keys([R0|Rs], [R0|Ls], Acc) ->
   subtract_sorted_keys(Rs, Ls, Acc);
-subtract_sorted_keys([_R0|Rs], [L0|Ls], Acc) ->
-  subtract_sorted_keys(Rs, Ls, [L0|Acc]);
+subtract_sorted_keys([R0|Rs], [L0|Ls], Acc) when R0 < L0 ->
+  subtract_sorted_keys(Rs, [L0|Ls], Acc);
+subtract_sorted_keys([R0|Rs], [L0|Ls], Acc) ->
+  subtract_sorted_keys([R0|Rs], Ls, [L0|Acc]);
 subtract_sorted_keys(_Rs, [], Acc) ->
-  lists:reverse(Acc).
+  lists:reverse(Acc);
+subtract_sorted_keys([], Ls, Acc) ->
+  lists:reverse(Acc) ++ Ls.
 
 tick_period() ->
   %% In milliseconds.
@@ -222,21 +226,21 @@ try_lock_int(Keys, Pid) ->
   ets:insert_new(?MODULE, [{Key, Pid} || Key <- Keys]).
       
 should_lock_more(Keys, Pid) ->
-  lists:foldl( fun(_Key, {false, _KeysToTry}) ->
-                   {false, []};
-                  (Key, {true, KeysToTry}) ->
-                   case ets:lookup(?MODULE, Key) of
+  lists:foldl(fun(_Key, {false, _KeysToTry}) ->
+                  {false, []};
+                 (Key, {true, KeysToTry}) ->
+                  case ets:lookup(?MODULE, Key) of
                     [] ->
-                       {true, [Key|KeysToTry]};
-                     {Key, Pid} ->
-                       {true, KeysToTry};
-                     {Key, _OtherPid} ->
-                       {false, []}
-                   end
-               end
+                      {true, [Key|KeysToTry]};
+                    [{Key, Pid}] ->
+                      {true, KeysToTry};
+                    [{Key, _OtherPid}] ->
+                      {false, []}
+                  end
+              end
              , {true, []}
              , Keys).
-                       
+
 release_lock_int(Keys) ->
   lists:foreach( fun(Key) ->
                      ets:delete(?MODULE, Key)
