@@ -10,4 +10,5 @@ rel/e0
 *.beam
 *.app
 *.plt
+.DS_Store
 erl_crash.dump
