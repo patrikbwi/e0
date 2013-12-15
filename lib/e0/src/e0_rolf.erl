@@ -64,7 +64,7 @@ terminate(_, _S) ->
   true = ets:delete(?MODULE),
   ok.
 
-handle_call({try_lock, Keys, Timeout}, {Pid, _Tag}
+handle_call({try_lock, Keys, Timeout}, {Pid, Tag}
            , #s{ monitors = M0
                , try_lock = TryLock0} = S) ->
   case lists:keyfind(Pid, 1, M0) of
@@ -72,7 +72,7 @@ handle_call({try_lock, Keys, Timeout}, {Pid, _Tag}
       %% A process may only have one monitored lock (for now).
       {reply, false, S};
     false ->
-      case try_lock_and_monitor_timeout(Keys, Pid, M0, TryLock0, Timeout) of
+      case try_lock_and_monitor_timeout(Keys, Pid, Tag, M0, TryLock0,Timeout) of
         {true, M, TryLock} ->
           {reply, true, S#s{ monitors = M
                            , try_lock = TryLock}};
@@ -123,17 +123,17 @@ handle_info({'DOWN', _Ref, process, Pid, _Info}, #s{monitors = M0} = S) ->
 
 handle_info(tick, #s{ try_lock = TryLock0
                     , monitors = M0} = S) ->
-  case lists:foldl(fun({Keys, Pid, Ticks0}, {TryLock1, M1}) ->
+  case lists:foldl(fun({Keys, Pid, Tag, Ticks0}, {TryLock1, M1}) ->
                        case try_lock_and_monitor(Keys, Pid, M1) of
                          {true, M2} ->
-                           gen_server:reply(Pid, true),
+                           gen_server:reply({Pid, Tag}, true),
                            {TryLock1, M2};
                          {false, M2} ->
                            case Ticks0 - 1 of
                              Ticks when Ticks > 0 ->
-                               {[{Keys, Pid, Ticks} | TryLock1], M2};
+                               {[{Keys, Pid, Tag, Ticks} | TryLock1], M2};
                              _Ticks ->
-                               gen_server:reply(Pid, false),
+                               gen_server:reply({Pid, Tag}, false),
                                {TryLock1, M2}
                            end
                        end
@@ -202,7 +202,7 @@ do_try_lock(Keys, Pid) ->
       true
   end.
 
-try_lock_and_monitor_timeout(Keys, Pid, M0, TryLock, Timeout) ->
+try_lock_and_monitor_timeout(Keys, Pid, Tag, M0, TryLock, Timeout) ->
   case try_lock_and_monitor(Keys, Pid, M0) of
     {true, M} ->
       {true, M, TryLock};      
@@ -210,7 +210,7 @@ try_lock_and_monitor_timeout(Keys, Pid, M0, TryLock, Timeout) ->
       {false, M, TryLock};
     {false, M} ->
       Ticks = (Timeout div tick_period()) + 1,
-      {false, M, [{Keys, Pid, Ticks} | TryLock]}
+      {false, M, [{Keys, Pid, Tag, Ticks} | TryLock]}
   end.
 
 try_lock_and_monitor(Keys, Pid, M) ->
