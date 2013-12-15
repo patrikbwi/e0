@@ -33,7 +33,7 @@ start_link() ->
 %%      guaranteed to be released.
 -spec try_lock([e0:key()]) -> boolean().
 try_lock(Keys) when is_list(Keys) ->
-  do_try_lock(Keys, self()).
+  do_try_lock(normalize_keys(Keys), self()).
 
 %% @doc Tries to grab a lock via the gen_server.
 %%      Tries to grab the lock at least Timeout milliseconds.
@@ -41,13 +41,13 @@ try_lock(Keys) when is_list(Keys) ->
 %%      would the caller crash.
 -spec try_lock([e0:key()], non_neg_integer()) -> boolean().
 try_lock(Keys, Timeout) when is_list(Keys), is_integer(Timeout), Timeout >= 0 ->
-  gen_server:call(?MODULE, {try_lock, Keys, Timeout}, infinity).
+  gen_server:call(?MODULE, {try_lock, normalize_keys(Keys), Timeout}, infinity).
 
 %% @doc releases a lock.
 -spec release_lock([e0:key()]) -> ok.
 release_lock(Keys) when is_list(Keys) ->
-  gen_server:cast(?MODULE, {release_lock, Keys}),
-  release_lock_int(Keys).
+  gen_server:cast(?MODULE, {release_lock, normalize_keys(Keys), self()}),
+  release_lock_int(normalize_keys(Keys)).
 
 %%%_* Gen server ==============================================================
 -record(s, {try_lock, monitors}).
@@ -93,8 +93,22 @@ handle_call({try_lock, Keys, Timeout}, {Pid, _Tag}
 handle_call(_, _, State) ->
   {reply, unknown_handle_call, State}.
 
-handle_cast(_, State) -> 
-  {no_reply, State}.
+handle_cast({release_lock, ReleaseKeys, Pid},  #s{monitors = M0} = S) ->
+  M = case lists:keyfind(Pid, 1, M0) of
+        {Pid, {Ref, LockedKeys}} when ReleaseKeys == LockedKeys ->
+          erlang:demonitor(Ref),
+          release_lock_int(ReleaseKeys),
+          lists:keydelete(Pid, 1, M0);
+        {Pid, {Ref, LockedKeys0}} ->
+          release_lock_int(ReleaseKeys),
+          LockedKeys = subtract_sorted_keys(ReleaseKeys, LockedKeys0),
+          lists:keyreplace(Pid, 1, M0, {Pid, {Ref, LockedKeys}});
+        false ->
+          M0
+      end,
+  {no_reply, S#s{monitors = M}};
+handle_cast(_, S) ->
+  {no_reply, S}.
 
 handle_info({'DOWN', _Ref, process, Pid, _Info}, #s{monitors = M0} = S) ->
   M = case lists:keyfind(Pid, 1, M0) of
@@ -138,6 +152,26 @@ handle_info(_Msg, State) ->
   {noreply, State}.
 
 %%%_* Internal ================================================================
+
+normalize_keys(Keys) ->
+  remove_dups(lists:sort(Keys), []).
+
+remove_dups([K,K|Ks], Acc) -> 
+  remove_dups([K|Ks], Acc);
+remove_dups([K|Ks], Acc) ->
+  remove_dups(Ks, [K|Acc]);
+remove_dups([], Acc) ->
+  lists:reverse(Acc).
+
+subtract_sorted_keys(ReleaseKeys, LockedKeys) ->
+  subtract_sorted_keys(ReleaseKeys, LockedKeys, []).
+
+subtract_sorted_keys([R0|Rs], [R0|Ls], Acc) ->
+  subtract_sorted_keys(Rs, Ls, Acc);
+subtract_sorted_keys([_R0|Rs], [L0|Ls], Acc) ->
+  subtract_sorted_keys(Rs, Ls, [L0|Acc]);
+subtract_sorted_keys(_Rs, [], Acc) ->
+  lists:reverse(Acc).
 
 tick_period() ->
   %% In milliseconds.
