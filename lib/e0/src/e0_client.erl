@@ -12,63 +12,24 @@
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%
-%% @doc e0 API module.
+%% @doc e0 client module.
 %% @end
 
--module(e0).
+-module(e0_client).
 
--export([r4wod/3, r4wod/2, r/2, r/1, w/1, d/1]).
+-export([r/1, w/1, d/1]).
 
 %%%_* Api =====================================================================
-
-r4wod(Box, Key, Timeout) ->
-  r4wod([{Box, Key}], Timeout).
-
-r4wod(BoxedKeys, Timeout) ->
-  case e0_rolf:try_lock(BoxedKeys, Timeout) of
-    true ->
-      e0_client:r(BoxedKeys);
-    false ->
-      {error, failed_locking}
-  end.
-
-r(Box, Key) ->
-  r([{Box, Key}]).
-
 r(BoxedKeys) ->
-  e0_client:r(BoxedKeys).
+  io:format("e0_client: ~p\n", [BoxedKeys]).
 
-w(E0Objs) when is_list(E0Objs) ->
-  Locks = locks(E0Objs),
-  case e0_rolf:try_lock(Locks) of
-    true ->
-      try e0_client:w(E0Objs)
-      catch E -> E
-      after e0_rolf:release_lock(Locks)
-      end;
-    false ->
-      {error, failed_locking}
-  end;
-w(E0Obj) ->
-  w([E0Obj]).
+w(E0Objs) ->
+  io:format("e0_client: ~p\n", [E0Objs]).
 
-d(E0Objs) when is_list(E0Objs) ->
-  Locks = locks(E0Objs),
-  case e0_rolf:try_lock(Locks) of
-    true ->
-      try e0_client:d(E0Objs)
-      catch E -> E
-      after e0_rolf:release_lock(Locks)
-      end;
-    false ->
-      {error, failed_locking}
-  end;
-d(E0Obj) ->
-  d([E0Obj]).
+d(E0Objs) ->
+  io:format("e0_client: ~p\n", [E0Objs]).
 
 %%%_* Internal ================================================================
-locks(E0Objs) ->
-  [{e0_obj:box(E0Obj), e0_obj:key(E0Obj)} || E0Obj <- E0Objs].
 
 %%%_* Emacs ===================================================================
 %%% Local Variables:
