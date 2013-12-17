@@ -17,25 +17,27 @@
 
 -module(e0).
 
--export([r4wod/3, r4wod/2, r/2, r/1, w/1, d/1]).
+-export([r4/2, r4/3, r/2, r/1, w/1, d/1]).
 
 %%%_* Api =====================================================================
 
-r4wod(Box, Key, Timeout) ->
-  r4wod([{Box, Key}], Timeout).
-
-r4wod(BoxedKeys, Timeout) ->
+r4(BoxedKeys, Timeout) when is_list(BoxedKeys), Timeout >= 0 ->
   case e0_rolf:try_lock(BoxedKeys, Timeout) of
     true ->
       e0_client:r(BoxedKeys);
     false ->
       {error, failed_locking}
-  end.
+  end;
+r4({Box, Key}, Timeout) when is_binary(Box), is_binary(Key), Timeout >= 0 ->
+  r4([{Box, Key}], Timeout).
+
+r4(Box, Key, Timeout) when is_binary(Box), is_binary(Key), Timeout >= 0 ->
+  r4([{Box, Key}], Timeout).
 
 r(Box, Key) ->
   r([{Box, Key}]).
 
-r(BoxedKeys) ->
+r(BoxedKeys) when is_list(BoxedKeys) ->
   e0_client:r(BoxedKeys).
 
 w(E0Objs) when is_list(E0Objs) ->
