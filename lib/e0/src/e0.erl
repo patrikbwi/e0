@@ -24,7 +24,7 @@
 r4(BoxedKeys, Timeout) when is_list(BoxedKeys), Timeout >= 0 ->
   case e0_rolf:try_lock(BoxedKeys, Timeout) of
     true ->
-      e0_bitcask:r(BoxedKeys);
+      r(BoxedKeys);
     false ->
       {error, failed_locking}
   end;
