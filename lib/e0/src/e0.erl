@@ -45,7 +45,6 @@ w(E0Objs) when is_list(E0Objs) ->
   case e0_rolf:try_lock(Locks) of
     true ->
       try e0_bitcask:w(E0Objs)
-      catch E -> E
       after e0_rolf:release_lock(Locks)
       end;
     false ->
@@ -59,7 +58,6 @@ d(E0Objs) when is_list(E0Objs) ->
   case e0_rolf:try_lock(Locks) of
     true ->
       try e0_bitcask:d(E0Objs)
-      catch E -> E
       after e0_rolf:release_lock(Locks)
       end;
     false ->
