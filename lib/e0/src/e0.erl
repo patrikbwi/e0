@@ -24,7 +24,7 @@
 r4(BoxedKeys, Timeout) when is_list(BoxedKeys), Timeout >= 0 ->
   case e0_rolf:try_lock(BoxedKeys, Timeout) of
     true ->
-      e0_client:r(BoxedKeys);
+      e0_bitcask:r(BoxedKeys);
     false ->
       {error, failed_locking}
   end;
@@ -38,13 +38,13 @@ r(Box, Key) ->
   r([{Box, Key}]).
 
 r(BoxedKeys) when is_list(BoxedKeys) ->
-  e0_client:r(BoxedKeys).
+  e0_bitcask:r(BoxedKeys).
 
 w(E0Objs) when is_list(E0Objs) ->
   Locks = locks(E0Objs),
   case e0_rolf:try_lock(Locks) of
     true ->
-      try e0_client:w(E0Objs)
+      try e0_bitcask:w(E0Objs)
       catch E -> E
       after e0_rolf:release_lock(Locks)
       end;
@@ -58,7 +58,7 @@ d(E0Objs) when is_list(E0Objs) ->
   Locks = locks(E0Objs),
   case e0_rolf:try_lock(Locks) of
     true ->
-      try e0_client:d(E0Objs)
+      try e0_bitcask:d(E0Objs)
       catch E -> E
       after e0_rolf:release_lock(Locks)
       end;

@@ -20,10 +20,17 @@ start_link() ->
 %% ===================================================================
 
 init(_Args) ->
-    VMaster = { e0_vnode_master,
-                  {riak_core_vnode_master, start_link, [e0_vnode]},
-                  permanent, 5000, worker, [riak_core_vnode_master]},
-
-    { ok,
-        { {one_for_one, 5, 10},
-          [VMaster]}}.
+    VMaster = {e0_vnode_master,
+               {riak_core_vnode_master, start_link, [e0_vnode]},
+               permanent, 5000, worker, [riak_core_vnode_master]},
+    E0Rolf = {e0_rolf,
+              {e0_rolf, start_link, []},
+              permanent, 5000, worker, [e0_rolf]},
+    E0Bitcask = {e0_bitcask,
+              {e0_bitcask, start_link, []},
+              permanent, 5000, worker, [e0_bitcask]},
+    {ok,
+     {{one_for_all, 1, 1000},
+      [ VMaster
+      , E0Rolf
+      , E0Bitcask]}}.

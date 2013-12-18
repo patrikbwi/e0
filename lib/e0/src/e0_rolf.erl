@@ -22,7 +22,6 @@
 -export([ try_lock/1
         , try_lock/2
         , release_lock/1
-
         ]).
 
 -export([ start_link/0
