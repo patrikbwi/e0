@@ -12,7 +12,7 @@ If you want to try it out ... build, start your nodes and join them:
     for d in dev/dev{2,3}; do $d/bin/e0-admin join e01@127.0.0.1; done
     ./dev/dev1/bin/e0-admin ringready
 
-NOTE: this will start a 3 e0 node test cluster, but the nodes doesn't really cooperate (yet)!
+This will start a 3 e0 node test cluster, but the nodes doesn't really cooperate (yet)!
 
 To get a taste of the API which offers both optimistic and pessimistic
 transactional mechanisms, follow the short intro below where we will
