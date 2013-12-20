@@ -62,8 +62,6 @@ Lets go ...
     [ok]
 
 From that, note that all e0 operations takes lists as arguments, meaning that
-you can e.g. look to use r4 with a number of boxes/keys that you need to update
+you can e.g. invoke e0:r4(...) with a number of boxes/keys that you want to update
 as a whole. An example would be a web service that involves multiple actors that
 might update data concurrently.
-
-
