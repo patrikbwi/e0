@@ -1,6 +1,5 @@
 -module(e0_vnode).
 -behaviour(riak_core_vnode).
--include("e0.hrl").
 
 -export([start_vnode/1,
          init/1,
@@ -30,7 +29,6 @@ init([Partition]) ->
 handle_command(ping, _Sender, State) ->
     {reply, {pong, State#state.partition}, State};
 handle_command(Message, _Sender, State) ->
-    ?PRINT({unhandled_command, Message}),
     {noreply, State}.
 
 handle_handoff_command(_Message, _Sender, State) ->
