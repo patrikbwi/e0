@@ -21,7 +21,7 @@
 
 -behaviour(gen_server).
 
--export([r/1,w/1,d/1]).
+-export([r/1,ro/1, w/1,d/1]).
 
 -export([ start_link/0
         , code_change/3
@@ -40,6 +40,9 @@ start_link() ->
 
 r(Ks) ->
  gen_server:call(?MODULE, {r, Ks}, infinity).
+
+ro(Ks) ->
+ gen_server:call(?MODULE, {ro, Ks}, infinity).
 
 w(E0s) ->
  gen_server:call(?MODULE, {w, E0s}, infinity).
@@ -69,6 +72,18 @@ handle_call({r, Ks}, _, S) ->
             {ok, V, E} ->
               E0 = e0_obj:from_binary(V),
               e0_obj:set_version(E0, E);
+            Else ->
+              Else
+          end
+      end, Ks),
+  {reply, Reply, S};
+handle_call({ro, Ks}, _, S) ->
+  Reply =
+    lists:map(
+      fun(K) ->
+          case bitcask:get(S#s.ref, to_bitcask_key(K), 1, false) of
+            {ok, V} ->
+              e0_obj:from_binary(V);
             Else ->
               Else
           end

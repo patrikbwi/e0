@@ -16,7 +16,7 @@
 %% @end
 
 -module(e0).
--export([r4/2, r4/3, r/2, r/1, w/1, d/1, e/0]).
+-export([r4/2, r4/3, r/2, r/1, ro/2, ro/1, w/1, d/1, e/0]).
 
 %%%_* Api =====================================================================
 
@@ -38,6 +38,12 @@ r(Box, Key) ->
 
 r(BoxedKeys) when is_list(BoxedKeys) ->
   e0_bitcask:r(BoxedKeys).
+
+ro(Box, Key) ->
+  ro([{Box, Key}]).
+
+ro(BoxedKeys) when is_list(BoxedKeys) ->
+  e0_bitcask:ro(BoxedKeys).
 
 w(E0Objs) when is_list(E0Objs) ->
   Locks = boxed_keys(E0Objs),
