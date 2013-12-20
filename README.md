@@ -1,7 +1,7 @@
 e0
 ==
 
-e0 is a transactional database based loosely on the Google F1 concepts.
+e0 is a transactional database based loosely on Google F1 concepts.
 
 If you want to try it out ... build, start your nodes and join them:
 
@@ -12,7 +12,7 @@ If you want to try it out ... build, start your nodes and join them:
     for d in dev/dev{2,3}; do $d/bin/e0-admin join e01@127.0.0.1; done
     ./dev/dev1/bin/e0-admin ringready
 
-NOTE: this will start a 3 e0 test nodes, but they don't really cooperate (yet)!
+NOTE: this will start a 3 e0 node test cluster, but the nodes doesn't really cooperate (yet)!
 
 To get a taste of the API which offers both optimistic and pessimistic
 transactional mechanisms, follow the short intro below where we will
@@ -61,6 +61,9 @@ Lets go ...
     (e01@127.0.0.1)6> e0:w(E02).
     [ok]
 
-
+From that, note that all e0 operations takes lists as arguments, meaning that
+you can e.g. look to use r4 with a number of boxes/keys that you need to update
+as a whole. An example would be a web service that involves multiple actors that
+might update data concurrently.
 
 
