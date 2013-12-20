@@ -78,27 +78,34 @@ handle_call({w, E0s}, _, S) ->
   Reply =
     case conflicts(S#s.ref, E0s) of
       [] ->
-        {ok, lists:map(
-               fun(E0) ->
-                   bitcask:put( S#s.ref
-                              , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)})
-                              , e0_obj:to_binary(E0))
-               end, E0s)};
+        %% TODO: insert RAFT append log here ...
+        %% TODO: ... if it succeeds with consensus, go on and put in bitcask.
+        Updated = os:timestamp(),
+        lists:map(
+          fun(E000) ->
+              E00 = e0_obj:set_version(E000, undefined),
+              E0 = e0_obj:set_updated(E00, Updated),
+              bitcask:put( S#s.ref
+                         , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)})
+                         , e0_obj:to_binary(E0))
+          end, E0s);
       Conflicts ->
-        {error, Conflicts}
+        {error, {conflicts, Conflicts}}
     end,
   {reply, Reply, S};
 handle_call({d, E0s}, _, S) ->
   Reply =
     case conflicts(S#s.ref, E0s) of
       [] ->
+        %% TODO: insert RAFT append log here ...
+        %% TODO: ... if it succeeds with consensus, go on and put in bitcask.
         lists:map(
           fun(E0) ->
               bitcask:delete( S#s.ref
                             , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)}))
           end, E0s);
       Conflicts ->
-        {error, Conflicts}
+        {error, {conflicts, Conflicts}}
     end,
   {reply, Reply, S};
 handle_call(_, _, S) ->
