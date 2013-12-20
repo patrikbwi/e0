@@ -14,15 +14,23 @@ If you want to try it out ... build, start your nodes and join them:
 
 NOTE: this will start a 3 e0 test nodes, but they don't really cooperate (yet)!
 
-To get a taste of the API, you can follow the small intro below where we will
+To get a taste of the API which offers both optimistic and pessimistic
+transactional mechanisms, follow the short intro below where we will
 
     1) create a new e0_obj
-    2) write the e0_obj
-    3) try write it again, but fail due to that it would conflict as the new value is not based on the old one,
-       e0 will never let you write data without basing it on old values!
-    4) r4 "read for update/delete" the e0_obj we wrote in 2) with a timeout of 3000 milliseconds.
-    5) Update the e0_obj we read in 4)
-    6) As we have read the object with r4, we are guaranteed to be able to write the updated value with e0:w
+    2) write the e0_obj optimistically, it will fail if there is a conflict
+    3) try write it optimistically again, but that will fail now due to that
+       it would conflict as the new value is not based on the old one.
+       e0 will _never_ let you write data without basing it on the previous
+       version!
+    4) Now lets try the "pessimistic read" r4 "read for update/delete" the 
+       e0_obj we wrote in 2) with a timeout of 3000 milliseconds. If we succeed
+       we are guaranteed to be able to write an updated version of the e0_obj.
+    5) Here we update the e0_obj we read in 4)
+    6) As we have read the object with r4, we are guaranteed not to get a 
+       conflicting write. 
+
+Lets go ...
 
     ./dev/dev1/bin/e0 attach
     (e01@127.0.0.1)1> E0 = e0_obj:new(<<"co-session">>, integer_to_binary(1), {funky, stuff}).
