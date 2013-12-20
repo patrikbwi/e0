@@ -21,7 +21,8 @@
 
 -export([ try_lock/1
         , try_lock/2
-        , release_lock/1
+        , release_locks_async/1
+        , release_locks_sync/0
         ]).
 
 -export([ start_link/0
@@ -54,11 +55,16 @@ try_lock(Locks) when is_list(Locks) ->
 try_lock(Locks, Timeout) when is_list(Locks), is_integer(Timeout), Timeout >= 0 ->
   gen_server:call(?MODULE, {try_lock, normalize_locks(Locks), Timeout}, infinity).
 
-%% @doc releases a lock.
--spec release_lock([term()]) -> ok.
-release_lock(Locks) when is_list(Locks) ->
-  gen_server:cast(?MODULE, {release_lock, normalize_locks(Locks), self()}),
-  release_lock_int(normalize_locks(Locks)).
+%% @doc releases locks in asynchronous mode.
+-spec release_locks_async([term()]) -> ok.
+release_locks_async(Locks) when is_list(Locks) ->
+  gen_server:cast(?MODULE, {release_locks, normalize_locks(Locks), self()}),
+  release_locks_int(normalize_locks(Locks)).
+
+%% @doc releases all remaining locks in synchronous mode.
+-spec release_locks_sync() -> ok.
+release_locks_sync() ->
+  gen_server:call(?MODULE, release_locks).
 
 %%%_* Gen server ==============================================================
 -record(s, {try_lock, monitors}).
@@ -101,10 +107,13 @@ handle_call({try_lock, Locks, Timeout}, {Pid, Tag}
                        , try_lock = TryLock}}
       end
   end;
+handle_call(release_locks,  {Pid, _Tag}, #s{monitors = M0} = S) ->
+  M = release_locks_and_demonitor(Pid, M0),
+  {reply, ok, S#s{monitors = M}};
 handle_call(_, _, State) ->
   {reply, unknown_handle_call, State}.
 
-handle_cast({release_lock, ReleaseLocks, Pid},  #s{monitors = M0} = S) ->
+handle_cast({release_locks, ReleaseLocks, Pid},  #s{monitors = M0} = S) ->
   M = case lists:keyfind(Pid, 1, M0) of
         {Pid, {Ref, LockedLocks0}} ->
             case subtract_sorted_locks(ReleaseLocks, LockedLocks0) of
@@ -122,14 +131,7 @@ handle_cast(_, S) ->
   {noreply, S}.
 
 handle_info({'DOWN', _Ref, process, Pid, _Info}, #s{monitors = M0} = S) ->
-  M = case lists:keyfind(Pid, 1, M0) of
-        {Pid, {Ref, Locks}} ->
-          erlang:demonitor(Ref),
-          release_lock_int(Locks),
-          lists:keydelete(Pid, 1, M0);
-        false ->
-          M0
-      end,
+  M = release_locks_and_demonitor(Pid, M0),
   {noreply, S#s{monitors = M}};
 
 handle_info(tick, #s{ try_lock = TryLock0
@@ -252,11 +254,21 @@ should_lock_more(Locks, Pid) ->
              , {true, []}
              , Locks).
 
-release_lock_int(Locks) ->
+release_locks_int(Locks) ->
   lists:foreach( fun(Lock) ->
                      ets:delete(?MODULE, Lock)
                  end
                , Locks).
+
+release_locks_and_demonitor(Pid, M) ->
+  case lists:keyfind(Pid, 1, M) of
+    {Pid, {Ref, LockedLocks}} ->
+      release_locks_int(LockedLocks),
+      erlang:demonitor(Ref),
+      lists:keydelete(Pid, 1, M);
+    false ->
+      M
+  end.
 
 %%%_* Emacs ===================================================================
 %%% Local Variables:

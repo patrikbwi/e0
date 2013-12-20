@@ -32,13 +32,14 @@
                 , updated :: erlang:timestamp()
                 , raft_term :: raft_term()
                 , raft_n :: raft_n()
+                , version :: tuple()
                 }).
 
 -opaque e0_obj() :: #e0_obj{}.
 
 -export([new/3]).
--export([box/1, key/1, val/1, created/1, updated/1]).
--export([set_val/2, set_updated/2]).
+-export([box/1, key/1, val/1, created/1, updated/1, version/1]).
+-export([set_val/2, set_updated/2, set_version/2]).
 -export([raft_term/1, set_raft_term/2, raft_n/1, set_raft_n/2]).
 -export([to_binary/1, from_binary/1]).
 
@@ -91,6 +92,16 @@ updated(#e0_obj{updated=Updated}) ->
 -spec set_updated(e0_obj(), os:timestamp()) -> e0_obj().
 set_updated(#e0_obj{}=E0, Updated) -> 
   E0#e0_obj{updated = Updated}.
+
+%% @doc  Return the version for this e0_obj.
+-spec version(e0_obj()) -> tuple().
+version(#e0_obj{version=Version}) -> 
+  Version.
+
+%% @doc  Set version for this e0_obj.
+-spec set_version(e0_obj(), tuple()) -> e0_obj().
+set_version(#e0_obj{}=E0, Version) -> 
+  E0#e0_obj{version = Version}.
 
 %% @doc Return the raft_term for this e0_obj.
 -spec raft_term(e0_obj()) -> raft_term().

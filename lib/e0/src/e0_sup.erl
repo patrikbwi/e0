@@ -30,7 +30,7 @@ init(_Args) ->
               {e0_bitcask, start_link, []},
               permanent, 5000, worker, [e0_bitcask]},
     {ok,
-     {{one_for_all, 1, 1000},
+     {{one_for_all, 60, 60},
       [ VMaster
       , E0Rolf
       , E0Bitcask]}}.

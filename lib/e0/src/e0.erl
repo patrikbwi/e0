@@ -16,8 +16,7 @@
 %% @end
 
 -module(e0).
-
--export([r4/2, r4/3, r/2, r/1, w/1, d/1]).
+-export([r4/2, r4/3, r/2, r/1, w/1, d/1, e/0]).
 
 %%%_* Api =====================================================================
 
@@ -41,11 +40,11 @@ r(BoxedKeys) when is_list(BoxedKeys) ->
   e0_bitcask:r(BoxedKeys).
 
 w(E0Objs) when is_list(E0Objs) ->
-  Locks = locks(E0Objs),
+  Locks = boxed_keys(E0Objs),
   case e0_rolf:try_lock(Locks) of
     true ->
       try e0_bitcask:w(E0Objs)
-      after e0_rolf:release_lock(Locks)
+      after e0_rolf:release_locks_async(Locks)
       end;
     false ->
       {error, failed_locking}
@@ -54,11 +53,11 @@ w(E0Obj) ->
   w([E0Obj]).
 
 d(E0Objs) when is_list(E0Objs) ->
-  Locks = locks(E0Objs),
+  Locks = boxed_keys(E0Objs),
   case e0_rolf:try_lock(Locks) of
     true ->
       try e0_bitcask:d(E0Objs)
-      after e0_rolf:release_lock(Locks)
+      after e0_rolf:release_locks_async(Locks)
       end;
     false ->
       {error, failed_locking}
@@ -66,8 +65,11 @@ d(E0Objs) when is_list(E0Objs) ->
 d(E0Obj) ->
   d([E0Obj]).
 
+e() ->
+  e0_rolf:release_locks_sync().
+
 %%%_* Internal ================================================================
-locks(E0Objs) ->
+boxed_keys(E0Objs) ->
   [{e0_obj:box(E0Obj), e0_obj:key(E0Obj)} || E0Obj <- E0Objs].
 
 %%%_* Emacs ===================================================================

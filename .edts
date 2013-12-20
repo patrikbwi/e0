@@ -1,0 +1,4 @@
+:name "e0"
+:node-sname "e0"
+:lib-dirs '("lib" "deps")
+:app-include-dirs '("include")

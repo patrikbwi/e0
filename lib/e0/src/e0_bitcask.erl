@@ -65,32 +65,41 @@ handle_call({r, Ks}, _, S) ->
   Reply =
     lists:map(
       fun(K) ->
-          case bitcask:get(S#s.ref, to_bitcask_key(K)) of
-            {ok, V} ->
-              {ok, e0_obj:from_binary(V)};
+          case bitcask:get(S#s.ref, to_bitcask_key(K), 1, true) of
+            {ok, V, E} ->
+              E0 = e0_obj:from_binary(V),
+              e0_obj:set_version(E0, E);
             Else ->
               Else
           end
       end, Ks),
   {reply, Reply, S};
 handle_call({w, E0s}, _, S) ->
-  %% Todo: compared raft_term and raft_n!
   Reply =
-    lists:map(
-      fun(E0) ->
-          bitcask:put( S#s.ref
-                     , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)})
-                     , e0_obj:to_binary(E0))
-      end, E0s),
+    case conflicts(S#s.ref, E0s) of
+      [] ->
+        {ok, lists:map(
+               fun(E0) ->
+                   bitcask:put( S#s.ref
+                              , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)})
+                              , e0_obj:to_binary(E0))
+               end, E0s)};
+      Conflicts ->
+        {error, Conflicts}
+    end,
   {reply, Reply, S};
 handle_call({d, E0s}, _, S) ->
-  %% Todo: compared raft_term and raft_n!
   Reply =
-    lists:map(
-      fun(E0) ->
-          bitcask:delete( S#s.ref
-                        , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)}))
-      end, E0s),
+    case conflicts(S#s.ref, E0s) of
+      [] ->
+        lists:map(
+          fun(E0) ->
+              bitcask:delete( S#s.ref
+                            , to_bitcask_key({e0_obj:box(E0), e0_obj:key(E0)}))
+          end, E0s);
+      Conflicts ->
+        {error, Conflicts}
+    end,
   {reply, Reply, S};
 handle_call(_, _, S) ->
   {reply, unknown_handle_call, S}.
@@ -117,6 +126,20 @@ bitcask_dir() ->
 
 to_bitcask_key(K) ->
   term_to_binary(K).
+
+conflicts(Ref, E0s) ->
+  [E0 || E0 <- E0s, conflict(Ref, E0)].
+
+conflict(Ref, E0) ->
+  case bitcask:get_bitcask_entry( Ref
+                                , to_bitcask_key({ e0_obj:box(E0)
+                                                 , e0_obj:key(E0)})) of
+    not_found ->
+      false;
+    {ok, E} ->
+      E =/= e0_obj:version(E0)
+  end.
+
 
 %%%_* Emacs ===================================================================
 %%% Local Variables:
